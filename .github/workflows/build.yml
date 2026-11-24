@@ -1,0 +1,24 @@
+name: Build static
+on: [workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install deps
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y build-essential g++-multilib gcc-multilib cmake git libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386
+      - name: Build
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-m32 -static-libstdc++ -static-libgcc" -DCMAKE_C_FLAGS="-m32"
+          make -j4
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: requests-so-static
+          path: build/requests.so

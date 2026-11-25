@@ -8,21 +8,31 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Build in old Ubuntu 18.04 Docker
+      - name: Create build script
         run: |
-          docker run --rm -v ${{ github.workspace }}:/work -w /work ubuntu:18.04 bash -c "
-            export DEBIAN_FRONTEND=noninteractive
-            apt-get update
-            apt-get install -y build-essential g++-multilib gcc-multilib cmake git python3-pip libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386
-            pip3 install 'conan==1.66.0'
-            conan profile new default --detect --force
-            conan profile update settings.arch=x86 default
-            conan profile update settings.compiler.libcxx=libstdc++11 default
-            rm -rf build && mkdir build && cd build
-            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-m32 -static-libstdc++ -static-libgcc' -DCMAKE_C_FLAGS='-m32'
-            make -j4
-            find . -name '*.so' -ls
-          "
+          cat > build.sh <<'EOS'
+          #!/bin/bash
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y build-essential g++-multilib gcc-multilib cmake git python3-pip libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386
+          pip3 install "conan==1.66.0"
+          conan profile new default --detect --force
+          conan profile update settings.arch=x86 default
+          conan profile update settings.compiler.libcxx=libstdc++11 default
+          rm -rf build
+          mkdir build
+          cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-m32 -static-libstdc++ -static-libgcc" -DCMAKE_C_FLAGS="-m32"
+          make -j4
+          echo "=== ARQUIVOS GERADOS ==="
+          find . -name "*.so" -ls
+          ls -lh
+          EOS
+          chmod +x build.sh
+
+      - name: Build in Ubuntu 18.04 Docker
+        run: docker run --rm -v ${{ github.workspace }}:/work -w /work ubuntu:18.04 bash /work/build.sh
 
       - name: Upload
         uses: actions/upload-artifact@v4

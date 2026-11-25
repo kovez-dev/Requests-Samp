@@ -14,6 +14,7 @@ jobs:
           #!/bin/bash
           set -e
           export DEBIAN_FRONTEND=noninteractive
+          dpkg --add-architecture i386
           apt-get update
           apt-get install -y build-essential g++-multilib gcc-multilib cmake git python3-pip libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386
           pip3 install "conan==1.66.0"

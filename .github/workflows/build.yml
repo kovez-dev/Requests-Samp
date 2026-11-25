@@ -3,29 +3,26 @@ on: [workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-22.04
-    container:
-      image: ubuntu:18.04
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
 
-      - name: Install deps
+      - name: Build in old Ubuntu 18.04 Docker
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update
-          apt-get install -y build-essential g++-multilib gcc-multilib cmake git python3-pip libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386 software-properties-common
-          pip3 install "conan==1.66.0"
-          conan profile new default --detect --force
-          conan profile update settings.arch=x86 default
-          conan profile update settings.compiler.libcxx=libstdc++11 default
-
-      - name: Build
-        run: |
-          mkdir build && cd build
-          cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-m32 -static-libstdc++ -static-libgcc" -DCMAKE_C_FLAGS="-m32"
-          make -j4
-          find . -name "*.so" -ls
+          docker run --rm -v ${{ github.workspace }}:/work -w /work ubuntu:18.04 bash -c "
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update
+            apt-get install -y build-essential g++-multilib gcc-multilib cmake git python3-pip libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386
+            pip3 install 'conan==1.66.0'
+            conan profile new default --detect --force
+            conan profile update settings.arch=x86 default
+            conan profile update settings.compiler.libcxx=libstdc++11 default
+            rm -rf build && mkdir build && cd build
+            cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS='-m32 -static-libstdc++ -static-libgcc' -DCMAKE_C_FLAGS='-m32'
+            make -j4
+            find . -name '*.so' -ls
+          "
 
       - name: Upload
         uses: actions/upload-artifact@v4

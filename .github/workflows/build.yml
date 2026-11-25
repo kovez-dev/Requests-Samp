@@ -3,6 +3,8 @@ on: [workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-22.04
+    container:
+      image: ubuntu:18.04
     steps:
       - uses: actions/checkout@v4
         with:
@@ -10,9 +12,9 @@ jobs:
 
       - name: Install deps
         run: |
-          sudo dpkg --add-architecture i386
-          sudo apt-get update
-          sudo apt-get install -y build-essential g++-multilib gcc-multilib cmake git python3-pip libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update
+          apt-get install -y build-essential g++-multilib gcc-multilib cmake git python3-pip libcurl4-openssl-dev:i386 libssl-dev:i386 zlib1g-dev:i386 software-properties-common
           pip3 install "conan==1.66.0"
           conan profile new default --detect --force
           conan profile update settings.arch=x86 default
@@ -23,7 +25,6 @@ jobs:
           mkdir build && cd build
           cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-m32 -static-libstdc++ -static-libgcc" -DCMAKE_C_FLAGS="-m32"
           make -j4
-          echo "=== ONDE O ARQUIVO NASCEU ==="
           find . -name "*.so" -ls
 
       - name: Upload
